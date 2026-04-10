@@ -71,8 +71,26 @@ app.post('/api/generate', async (req, res) => {
     res.end();
   } catch (error) {
     console.error('Anthropic API error:', error.message);
-    res.write(`data: ${JSON.stringify({ error: 'Failed to generate post' })}\n\n`);
+    res.write(`data: ${JSON.stringify({ error: error.message || 'Failed to generate post' })}\n\n`);
     res.end();
+  }
+});
+
+// Health check — visita /api/health en el navegador para diagnosticar
+app.get('/api/health', async (req, res) => {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key || key === 'your_api_key_here') {
+    return res.json({ ok: false, error: 'ANTHROPIC_API_KEY no está configurada' });
+  }
+  try {
+    const msg = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 10,
+      messages: [{ role: 'user', content: 'Say: ok' }],
+    });
+    res.json({ ok: true, model: msg.model, reply: msg.content[0].text });
+  } catch (e) {
+    res.json({ ok: false, error: e.message });
   }
 });
 
