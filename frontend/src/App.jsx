@@ -186,7 +186,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: '#080b14' }}>
+    <div className="flex h-dvh overflow-hidden" style={{ background: '#080b14' }}>
 
       {/* ── DESKTOP ── */}
       <div className="hidden md:flex w-80 flex-shrink-0 flex-col border-r border-slate-800/60" style={{ background: '#0d1117' }}>
@@ -221,7 +221,7 @@ export default function App() {
         </div>
 
         {/* Tab content */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden flex flex-col">
           {mobileTab === 'input'   && <ArticleInput {...sharedInputProps} />}
           {mobileTab === 'output'  && <PostOutput {...sharedOutputProps} />}
           {mobileTab === 'history' && (

@@ -70,7 +70,7 @@ export default function PostOutput({
   const btnBase = 'rounded-lg border border-slate-700/60 text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-all';
 
   return (
-    <div className="flex-1 flex flex-col p-5 md:p-8 overflow-y-auto">
+    <div className="flex-1 flex flex-col p-5 md:p-8 overflow-y-auto min-h-0">
       <div className={`mx-auto w-full flex flex-col gap-4 transition-all ${showComparison ? 'max-w-4xl' : 'max-w-xl'}`}>
 
         {/* View toggle */}

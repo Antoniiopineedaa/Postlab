@@ -46,7 +46,7 @@ export default function ArticleInput({
   const canGenerate = !isLoading && !isParsing && abstractText.trim();
 
   return (
-    <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto">
+    <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto min-h-0">
 
       {/* Abstract */}
       <div className="flex flex-col gap-1.5">
