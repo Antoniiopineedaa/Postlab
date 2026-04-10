@@ -8,30 +8,19 @@ import fs from 'fs';
 import multer from 'multer';
 import { createRequire } from 'module';
 
+dotenv.config();
+
 const require = createRequire(import.meta.url);
 const pdfParse = require('pdf-parse');
-
-dotenv.config();
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 
-app.use(cors({ origin: 'http://localhost:5173' }));
+app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:4173'] }));
 app.use(express.json());
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
-
-app.post('/api/parse-pdf', upload.single('pdf'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-  try {
-    const data = await pdfParse(req.file.buffer);
-    res.json({ text: data.text.trim() });
-  } catch (error) {
-    console.error('PDF parse error:', error.message);
-    res.status(500).json({ error: 'Failed to parse PDF' });
-  }
-});
 
 const SYSTEM_PROMPT = `You write LinkedIn posts for Antonio Pineda Guerrero: 4th-year medical student and researcher at Universitat Jaume I (Spain), affiliated with the CARDIO and BIOMyE research groups, presented at SEMERGEN 47 and SMICV 19 congresses. He is building an identity as a clinician-scientist with international ambitions in cardiology and neuroscience.
 
@@ -54,34 +43,55 @@ RULES:
 - No first-person 'I' statements.
 - Return ONLY the post. No preamble, no explanation, no quotes around it.`;
 
+// Streaming generate endpoint
 app.post('/api/generate', async (req, res) => {
   const { userMessage, refinementInstruction } = req.body;
-
-  if (!userMessage) {
-    return res.status(400).json({ error: 'userMessage is required' });
-  }
+  if (!userMessage) return res.status(400).json({ error: 'userMessage is required' });
 
   const fullMessage = refinementInstruction
     ? `${userMessage}\n\n${refinementInstruction}`
     : userMessage;
 
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
   try {
-    const message = await client.messages.create({
+    const stream = client.messages.stream({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: fullMessage }],
     });
 
-    const post = message.content[0].text;
-    res.json({ post });
+    stream.on('text', (text) => {
+      res.write(`data: ${JSON.stringify({ text })}\n\n`);
+    });
+
+    await stream.finalMessage();
+    res.write('data: [DONE]\n\n');
+    res.end();
   } catch (error) {
     console.error('Anthropic API error:', error.message);
-    res.status(500).json({ error: 'Failed to generate post' });
+    res.write(`data: ${JSON.stringify({ error: 'Failed to generate post' })}\n\n`);
+    res.end();
   }
 });
 
-// En producción, sirve el frontend compilado
+// PDF parse endpoint
+app.post('/api/parse-pdf', upload.single('pdf'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  try {
+    const data = await pdfParse(req.file.buffer);
+    res.json({ text: data.text.trim() });
+  } catch (error) {
+    console.error('PDF parse error:', error.message);
+    res.status(500).json({ error: 'Failed to parse PDF' });
+  }
+});
+
+// Serve built frontend in production
 const distPath = join(__dirname, '../frontend/dist');
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
