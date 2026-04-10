@@ -58,18 +58,15 @@ app.post('/api/generate', async (req, res) => {
   res.flushHeaders();
 
   try {
-    const stream = client.messages.stream({
+    const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: fullMessage }],
     });
 
-    stream.on('text', (text) => {
-      res.write(`data: ${JSON.stringify({ text })}\n\n`);
-    });
-
-    await stream.finalMessage();
+    const post = message.content[0].text;
+    res.write(`data: ${JSON.stringify({ text: post })}\n\n`);
     res.write('data: [DONE]\n\n');
     res.end();
   } catch (error) {
