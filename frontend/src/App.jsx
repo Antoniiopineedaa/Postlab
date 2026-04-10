@@ -3,7 +3,6 @@ import ArticleInput from './components/ArticleInput';
 import PostOutput from './components/PostOutput';
 import HistoryPanel from './components/HistoryPanel';
 
-// En desarrollo apunta al backend local; en producción usa la misma URL
 const API_URL = import.meta.env.DEV ? 'http://localhost:3001' : '';
 
 export function countWords(text) {
@@ -54,9 +53,7 @@ export default function App() {
   };
 
   const buildUserMessage = (extraInstruction) => {
-    const parts = [
-      `Here is the content to turn into a LinkedIn post:\n\n${abstractText.trim()}`,
-    ];
+    const parts = [`Here is the content to turn into a LinkedIn post:\n\n${abstractText.trim()}`];
     if (journalName.trim()) parts.push(`Journal: ${journalName.trim()}`);
     if (specialty.trim()) parts.push(`Specialty/topic: ${specialty.trim()}`);
     if (extraInstruction) parts.push(extraInstruction);
@@ -113,15 +110,29 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 font-sans overflow-hidden">
-      {/* Left panel — input */}
-      <div className="w-80 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h1 className="text-lg font-bold text-gray-900 tracking-tight">PostLab</h1>
-          <span className="text-xs bg-blue-50 text-blue-600 border border-blue-100 px-2.5 py-1 rounded-full font-medium">
-            Estilo: Antonio Pineda
-          </span>
+    <div className="flex h-screen overflow-hidden" style={{ background: '#080b14' }}>
+      {/* Left panel */}
+      <div className="w-80 flex-shrink-0 flex flex-col border-r border-slate-800/60" style={{ background: '#0d1117' }}>
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-slate-800/60">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center">
+                <span className="text-white text-xs font-bold">P</span>
+              </div>
+              <h1 className="text-base font-bold text-white tracking-tight">PostLab</h1>
+            </div>
+            <span className="text-xs px-2.5 py-1 rounded-full font-medium border"
+              style={{
+                background: 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.15))',
+                borderColor: 'rgba(99,102,241,0.3)',
+                color: '#a5b4fc',
+              }}>
+              Antonio Pineda
+            </span>
+          </div>
         </div>
+
         <ArticleInput
           abstractText={abstractText}
           journalName={journalName}
@@ -134,7 +145,7 @@ export default function App() {
         />
       </div>
 
-      {/* Center — output */}
+      {/* Center */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <PostOutput
           post={generatedPost}
@@ -146,7 +157,7 @@ export default function App() {
         />
       </div>
 
-      {/* Right — history sidebar */}
+      {/* Right — history */}
       <HistoryPanel
         history={history}
         isOpen={historyOpen}
