@@ -5,6 +5,11 @@ import Anthropic from '@anthropic-ai/sdk';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import fs from 'fs';
+import multer from 'multer';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const pdfParse = require('pdf-parse');
 
 dotenv.config();
 
@@ -15,6 +20,18 @@ app.use(cors({ origin: 'http://localhost:5173' }));
 app.use(express.json());
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
+
+app.post('/api/parse-pdf', upload.single('pdf'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  try {
+    const data = await pdfParse(req.file.buffer);
+    res.json({ text: data.text.trim() });
+  } catch (error) {
+    console.error('PDF parse error:', error.message);
+    res.status(500).json({ error: 'Failed to parse PDF' });
+  }
+});
 
 const SYSTEM_PROMPT = `You write LinkedIn posts for Antonio Pineda Guerrero: 4th-year medical student and researcher at Universitat Jaume I (Spain), affiliated with the CARDIO and BIOMyE research groups, presented at SEMERGEN 47 and SMICV 19 congresses. He is building an identity as a clinician-scientist with international ambitions in cardiology and neuroscience.
 

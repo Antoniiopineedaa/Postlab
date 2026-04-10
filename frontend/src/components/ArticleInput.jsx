@@ -1,3 +1,7 @@
+import { useRef, useState } from 'react';
+
+const API_URL = import.meta.env.DEV ? 'http://localhost:3001' : '';
+
 export default function ArticleInput({
   abstractText,
   journalName,
@@ -8,25 +12,94 @@ export default function ArticleInput({
   onGenerate,
   isLoading,
 }) {
+  const [isParsing, setIsParsing] = useState(false);
+  const [parseError, setParseError] = useState('');
+  const fileInputRef = useRef(null);
+
   const handleKeyDown = (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       onGenerate();
     }
   };
 
+  const handlePdfUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      setParseError('Solo se aceptan archivos PDF.');
+      return;
+    }
+
+    setIsParsing(true);
+    setParseError('');
+
+    const formData = new FormData();
+    formData.append('pdf', file);
+
+    try {
+      const res = await fetch(`${API_URL}/api/parse-pdf`, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setAbstractText(data.text);
+    } catch (err) {
+      setParseError('Error al leer el PDF. Prueba a pegar el texto manualmente.');
+    } finally {
+      setIsParsing(false);
+      // Reset input so the same file can be re-uploaded
+      e.target.value = '';
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto">
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-          Abstract / Key Findings <span className="text-blue-400">*</span>
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            Abstract / Key Findings <span className="text-blue-400">*</span>
+          </label>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isParsing || isLoading}
+            className="flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
+          >
+            {isParsing ? (
+              <>
+                <span className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin inline-block" />
+                Leyendo…
+              </>
+            ) : (
+              <>
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                Upload PDF
+              </>
+            )}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/pdf"
+            className="hidden"
+            onChange={handlePdfUpload}
+          />
+        </div>
+
         <textarea
           className="w-full h-52 px-3 py-2.5 text-sm text-gray-800 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-300 leading-relaxed"
-          placeholder="Paste abstract or key findings here..."
+          placeholder="Paste abstract or key findings here, or upload a PDF above..."
           value={abstractText}
           onChange={(e) => setAbstractText(e.target.value)}
           onKeyDown={handleKeyDown}
         />
+
+        {parseError && (
+          <p className="text-xs text-red-400">{parseError}</p>
+        )}
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -57,7 +130,7 @@ export default function ArticleInput({
 
       <button
         onClick={onGenerate}
-        disabled={isLoading || !abstractText.trim()}
+        disabled={isLoading || isParsing || !abstractText.trim()}
         className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
       >
         {isLoading ? (
